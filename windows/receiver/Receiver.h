@@ -21,7 +21,9 @@ public:
 
     struct Config {
         int port = 9710;
-        int latencyMs = 300;
+        // SRT uses the larger of the two ends' latencies, so this is the phone app's lowest setting:
+        // the phone's Stability choice then decides.
+        int latencyMs = 120;
         int outWidth = 3840;
         int outHeight = 2160;
     };

@@ -2,36 +2,24 @@ StreamLens - use your phone as a 4K camera in OBS
 =================================================
 
 ON THE LAPTOP (Windows 10 or 11)
-1. Copy this whole folder to the laptop, or run it from the pen drive.
-2. Double-click "Install StreamLens.cmd" and click Yes when Windows asks.
-   It copies StreamLens to C:\Program Files\StreamLens, so you can remove the pen drive afterwards.
-3. Open StreamLens from the desktop. Its window says "Waiting for the phone".
-4. In OBS: + > Video Capture Device > Device: StreamLens Camera.
+1. Double-click StreamLens-Setup.exe and follow the steps (click Yes when Windows asks).
+   If Windows says "Windows protected your PC", click More info > Run anyway.
+2. StreamLens opens. Its window shows whether the phone is connected, and tells you exactly what
+   to fix if Windows is blocking the phone.
+3. In OBS: + > Video Capture Device > Device: StreamLens Camera.
 
 ON THE PHONE
-5. Install "Phone app\StreamLens.apk" if it isn't on the phone yet.
-6. Put the phone on the same Wi-Fi or router as the laptop and tap Go live.
+4. Install "Phone app\StreamLens.apk" (choose Update if an older one is installed).
+5. Put the phone on the same Wi-Fi or router as the laptop and tap Go live.
    The phone finds the laptop by itself.
 
 THE RIGHT-BACK SCREEN
-Whenever there's no phone video (before it connects, or if it drops), StreamLens Camera shows a
-"Sorry for the inconvenience. We'll be right back." screen, and switches back to the phone by itself
-when it reconnects. To add your church name, logo, photo, colour or your own message:
-- Press Windows+R, paste  %APPDATA%\StreamLens\settings.ini  and press Enter.
-- Edit it in Notepad and save. The camera updates within a few seconds.
+Whenever there's no phone video, StreamLens Camera shows "Sorry for the inconvenience. We'll be
+right back." and switches back to the phone by itself when it reconnects. Set your church name,
+logo, photo, colour and message in the StreamLens window; the preview shows what viewers will see.
 
-IF THE PHONE CAN'T FIND THE LAPTOP
-- Windows must treat the network as Private: Settings > Network & Internet > your Wi-Fi >
-  Network profile: Private.
+GOOD TO KNOW
+- Closing the StreamLens window keeps it running next to the clock, so the camera keeps working.
+  Quit it from that icon.
+- To remove StreamLens: Settings > Apps > StreamLens > Uninstall.
 - Guest Wi-Fi networks block devices from talking to each other. Use the main network.
-- Only one program can receive the phone. If you also use the OBS script, delete its
-  "StreamLens camera" media source; StreamLens says so when the port is taken.
-
-OTHER WAY: OBS SCRIPT ONLY (no install)
-The "OBS script" folder works without installing anything: in OBS, Tools > Scripts > + >
-streamlens.lua, then click "Set up phone camera".
-
-REMOVING IT
-Double-click "Uninstall StreamLens.cmd".
-
-Licences: StreamLens Camera is based on softcam (MIT). It uses FFmpeg (LGPL 2.1+). See "Licences".

@@ -5,6 +5,7 @@
 #include <shlobj.h>
 
 #include <algorithm>
+#include <cstring>
 #include <cwctype>
 #include <fstream>
 #include <memory>
@@ -127,7 +128,53 @@ SlateSettings loadSlateSettings(const std::wstring& path) {
     return s;
 }
 
-std::vector<uint8_t> renderSlate(const SlateSettings& settings, const std::wstring& status, int width, int height) {
+AppPrefs loadAppPrefs(const std::wstring& path) {
+    AppPrefs p;
+    std::wistringstream lines(readText(path));
+    std::wstring line;
+    while (std::getline(lines, line)) {
+        auto eq = line.find(L'=');
+        if (eq == std::wstring::npos) continue;
+        std::wstring key = trim(line.substr(0, eq));
+        std::transform(key.begin(), key.end(), key.begin(), ::towlower);
+        if (key == L"camerasize") p.camera1080p = trim(line.substr(eq + 1)) == L"1080p";
+    }
+    return p;
+}
+
+void saveSettings(const std::wstring& path, const SlateSettings& s, const AppPrefs& p) {
+    // Each value must stay on one line of the file.
+    auto oneLine = [](std::wstring v) {
+        for (auto& c : v) {
+            if (c == L'\r' || c == L'\n') c = L' ';
+        }
+        return trim(v);
+    };
+    wchar_t colour[8];
+    swprintf(colour, 8, L"#%06X", s.brandColour & 0xFFFFFF);
+    std::wstring body = L"Message=" + oneLine(s.message) + L"\r\nSecondLine=" + oneLine(s.secondLine) +
+                        L"\r\nChurchName=" + oneLine(s.churchName) + L"\r\nBrandColour=" + colour +
+                        L"\r\nLogo=" + oneLine(s.logo) + L"\r\nPhoto=" + oneLine(s.photo) +
+                        L"\r\nAudioContinues=" + (s.audioContinues ? L"yes" : L"no") +
+                        L"\r\n\r\n; Camera size: 4K, or 1080p for slower computers (takes effect when StreamLens restarts).\r\n"
+                        L"CameraSize=" + (p.camera1080p ? L"1080p" : L"4K") + L"\r\n";
+    // Keep the explanations at the top of the file, then the values.
+    std::string header(kDefaultSettings, std::strstr(kDefaultSettings, "Message=") - kDefaultSettings);
+    int n = WideCharToMultiByte(CP_UTF8, 0, body.data(), static_cast<int>(body.size()), nullptr, 0, nullptr, nullptr);
+    std::string utf8(n, '\0');
+    WideCharToMultiByte(CP_UTF8, 0, body.data(), static_cast<int>(body.size()), utf8.data(), n, nullptr, nullptr);
+    // Write to a temporary file first, so a crash can never leave half a settings file.
+    std::wstring temp = path + L".tmp";
+    {
+        std::ofstream out(temp, std::ios::binary | std::ios::trunc);
+        out << header << utf8;
+    }
+    MoveFileExW(temp.c_str(), path.c_str(), MOVEFILE_REPLACE_EXISTING);
+}
+
+namespace {
+
+std::unique_ptr<Gdiplus::Bitmap> drawSlate(const SlateSettings& settings, const std::wstring& status, int width, int height) {
     using namespace Gdiplus;
     ensureGdiplus();
 
@@ -135,7 +182,8 @@ std::vector<uint8_t> renderSlate(const SlateSettings& settings, const std::wstri
     const BYTE r = (settings.brandColour >> 16) & 0xFF, g = (settings.brandColour >> 8) & 0xFF,
                b = settings.brandColour & 0xFF;
 
-    Bitmap bitmap(width, height, PixelFormat32bppARGB);
+    auto result = std::make_unique<Bitmap>(width, height, PixelFormat32bppARGB);
+    Bitmap& bitmap = *result;
     Graphics gfx(&bitmap);
     gfx.SetSmoothingMode(SmoothingModeAntiAlias);
     gfx.SetTextRenderingHint(TextRenderingHintAntiAliasGridFit);
@@ -238,6 +286,90 @@ std::vector<uint8_t> renderSlate(const SlateSettings& settings, const std::wstri
         Font audioFont(&family, H * 0.024f, FontStyleRegular, UnitPixel);
         gfx.DrawString(L"Audio continues", -1, &audioFont, PointF(H * 0.04f, H - H * 0.04f - H * 0.035f), &soft);
     }
+    return result;
+}
+
+CLSID encoderFor(const wchar_t* mime) {
+    UINT count = 0, size = 0;
+    Gdiplus::GetImageEncodersSize(&count, &size);
+    std::vector<uint8_t> buffer(size);
+    auto* codecs = reinterpret_cast<Gdiplus::ImageCodecInfo*>(buffer.data());
+    Gdiplus::GetImageEncoders(count, size, codecs);
+    for (UINT i = 0; i < count; i++) {
+        if (wcscmp(codecs[i].MimeType, mime) == 0) return codecs[i].Clsid;
+    }
+    return CLSID{};
+}
+
+std::string base64(const uint8_t* data, size_t size) {
+    static const char table[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    std::string out;
+    out.reserve((size + 2) / 3 * 4);
+    for (size_t i = 0; i < size; i += 3) {
+        uint32_t v = data[i] << 16 | (i + 1 < size ? data[i + 1] << 8 : 0) | (i + 2 < size ? data[i + 2] : 0);
+        out += table[v >> 18 & 63];
+        out += table[v >> 12 & 63];
+        out += i + 1 < size ? table[v >> 6 & 63] : '=';
+        out += i + 2 < size ? table[v & 63] : '=';
+    }
+    return out;
+}
+
+// Encodes a bitmap as a "data:" URL for the StreamLens window.
+std::string dataUrl(Gdiplus::Bitmap& bitmap, const wchar_t* mime, const char* prefix, const Gdiplus::EncoderParameters* params) {
+    IStream* stream = nullptr;
+    if (FAILED(CreateStreamOnHGlobal(nullptr, TRUE, &stream))) return {};
+    CLSID encoder = encoderFor(mime);
+    std::string url;
+    if (bitmap.Save(stream, &encoder, params) == Gdiplus::Ok) {
+        HGLOBAL memory = nullptr;
+        GetHGlobalFromStream(stream, &memory);
+        STATSTG stat{};
+        stream->Stat(&stat, STATFLAG_NONAME);
+        const auto* bytes = static_cast<const uint8_t*>(GlobalLock(memory));
+        url = prefix + base64(bytes, static_cast<size_t>(stat.cbSize.QuadPart));
+        GlobalUnlock(memory);
+    }
+    stream->Release();
+    return url;
+}
+
+}  // namespace
+
+std::string renderSlatePreview(const SlateSettings& settings, const std::wstring& status, int width, int height) {
+    auto bitmap = drawSlate(settings, status, width, height);
+    return dataUrl(*bitmap, L"image/png", "data:image/png;base64,", nullptr);
+}
+
+std::string cameraPreview(const uint8_t* nv12, int width, int height, int outWidth, int outHeight) {
+    ensureGdiplus();
+    // Shrinking 4K to preview size first keeps this cheap (a few milliseconds).
+    static SwsContext* sws = nullptr;
+    sws = sws_getCachedContext(sws, width, height, AV_PIX_FMT_NV12, outWidth, outHeight, AV_PIX_FMT_BGRA,
+                               SWS_FAST_BILINEAR, nullptr, nullptr, nullptr);
+    if (!sws) return {};
+    std::vector<uint8_t> bgra(static_cast<size_t>(outWidth) * outHeight * 4);
+    const uint8_t* src[2] = {nv12, nv12 + static_cast<size_t>(width) * height};
+    int srcStride[2] = {width, width};
+    uint8_t* dst[1] = {bgra.data()};
+    int dstStride[1] = {outWidth * 4};
+    sws_scale(sws, src, srcStride, 0, height, dst, dstStride);
+
+    Gdiplus::Bitmap bitmap(outWidth, outHeight, outWidth * 4, PixelFormat32bppRGB, bgra.data());
+    ULONG quality = 80;
+    Gdiplus::EncoderParameters params;
+    params.Count = 1;
+    params.Parameter[0].Guid = Gdiplus::EncoderQuality;
+    params.Parameter[0].Type = Gdiplus::EncoderParameterValueTypeLong;
+    params.Parameter[0].NumberOfValues = 1;
+    params.Parameter[0].Value = &quality;
+    return dataUrl(bitmap, L"image/jpeg", "data:image/jpeg;base64,", &params);
+}
+
+std::vector<uint8_t> renderSlate(const SlateSettings& settings, const std::wstring& status, int width, int height) {
+    using namespace Gdiplus;
+    auto drawn = drawSlate(settings, status, width, height);
+    Bitmap& bitmap = *drawn;
 
     // BGRA → NV12, the camera's format.
     std::vector<uint8_t> nv12(static_cast<size_t>(width) * height * 3 / 2);

@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>StreamLens</title>
+<!--
+  The StreamLens window. Shown by StreamLens.exe with WebView2; it sends commands as "command?key=value"
+  with chrome.webview.postMessage and receives JSON messages ({type: ...}) back. See App.cpp.
+-->
+<style>
+  :root {
+    --bg: #16171f; --card: #1f2130; --line: #2c2f43; --text: #e8e9f1; --muted: #9a9db5;
+    --accent: #7f77dd; --live: #2bb673; --warn: #e8a33d; --bad: #e24b4a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg); color: var(--text); font: 14px/1.45 "Segoe UI", system-ui, sans-serif;
+    display: flex; flex-direction: column; user-select: none;
+  }
+  input, textarea, select, button { font: inherit; color: inherit; }
+  header { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--line); }
+  header img { width: 30px; height: 30px; }
+  header h1 { font-size: 18px; font-weight: 600; margin: 0; flex: 1; }
+  .pill { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 999px;
+          background: #262838; font-size: 13px; }
+  .pill .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+  .pill.live .dot { background: var(--live); box-shadow: 0 0 0 4px rgba(43,182,115,.18); }
+  .pill.dropped .dot { background: var(--warn); }
+  main { flex: 1; overflow: auto; display: grid; grid-template-columns: minmax(320px, 1fr) minmax(380px, 1.25fr);
+         gap: 16px; padding: 16px 20px 20px; align-content: start; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+  .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  section h2 { font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted);
+               margin: 0 0 12px; }
+  .big { font-size: 20px; font-weight: 600; margin: 0 0 4px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 12.5px; }
+  .addr { font-family: Consolas, monospace; font-size: 13px; background: #262838; border-radius: 6px; padding: 2px 6px;
+          user-select: text; }
+  .banner { margin-top: 12px; padding: 12px; border-radius: 10px; background: rgba(232,163,61,.12);
+            border: 1px solid rgba(232,163,61,.45); }
+  .banner b { color: var(--warn); }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .row + .row { margin-top: 10px; }
+  button { background: #2b2e42; border: 1px solid var(--line); border-radius: 8px; padding: 7px 14px; cursor: pointer; }
+  button:hover { background: #34384f; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary:hover { filter: brightness(1.08); }
+  .segmented { display: grid; grid-template-columns: repeat(3, 1fr); background: #262838; border-radius: 10px; padding: 4px; gap: 4px; }
+  .segmented button { border: 0; background: transparent; padding: 8px 6px; }
+  .segmented button.on { background: var(--accent); color: #fff; }
+  .segmented button.on.warn { background: var(--warn); color: #1a1a1a; }
+  label.field { display: block; margin-top: 12px; }
+  label.field > span { display: block; font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+  input[type=text], textarea, select {
+    width: 100%; background: #171925; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; outline: none;
+  }
+  input[type=text]:focus, textarea:focus, select:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 58px; }
+  input[type=color] { width: 44px; height: 34px; border: 1px solid var(--line); border-radius: 8px; background: #171925; padding: 3px; }
+  .file { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--muted); }
+  .check { display: flex; gap: 10px; align-items: center; margin-top: 12px; cursor: pointer; }
+  .check input { width: 18px; height: 18px; accent-color: var(--accent); }
+  .preview { position: relative; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; background: #000;
+             border: 1px solid var(--line); }
+  .preview img { width: 100%; height: 100%; display: block; }
+  .badge { position: absolute; left: 10px; top: 10px; padding: 3px 10px; border-radius: 999px; font-size: 12px;
+           font-weight: 600; background: rgba(0,0,0,.6); color: #fff; }
+  .badge.live { background: var(--bad); }
+  .badge.live::before { content: "● "; }
+  .badge.screen { background: rgba(232,163,61,.9); color: #1a1a1a; }
+  .saved { font-size: 12px; color: var(--live); opacity: 0; transition: opacity .3s; }
+  .saved.show { opacity: 1; }
+  ol { margin: 6px 0 0; padding-left: 20px; }
+  ul.events { list-style: none; margin: 0; padding: 0; font-size: 12.5px; color: var(--muted); }
+  ul.events li { padding: 3px 0; border-bottom: 1px dashed var(--line); user-select: text; }
+  ul.events li:last-child { border-bottom: 0; color: var(--text); }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <img src="icon.png" alt="">
+  <h1>StreamLens</h1>
+  <span id="pill" class="pill"><span class="dot"></span><span id="pillText">Starting…</span></span>
+</header>
+
+<main>
+  <div class="col">
+    <section>
+      <h2>Camera</h2>
+      <div class="preview camera">
+        <img id="camera" alt="What StreamLens Camera is showing now">
+        <span id="cameraBadge" class="badge">Starting…</span>
+      </div>
+      <p class="small muted" style="margin:6px 0 14px">This is exactly what OBS receives from StreamLens Camera.</p>
+      <p id="phoneTitle" class="big">Waiting for the phone</p>
+      <p id="phoneDetail" class="muted">On your phone, open StreamLens and tap <b>Go live</b>. It finds this computer by itself.</p>
+      <div class="small muted" style="margin-top:10px">
+        This computer: <span id="addresses">…</span> · port <span class="addr">9710</span>
+      </div>
+      <div id="publicBanner" class="banner hidden">
+        <b>Windows is blocking the phone.</b> It calls <span id="publicName"></span> a <b>Public</b> network, so it
+        doesn't let other devices connect.
+        <ol class="small">
+          <li>Click <b>Open network settings</b>.</li>
+          <li>Click your Wi-Fi's <b>Properties</b>, then choose <b>Private</b>.</li>
+        </ol>
+        <div class="row" style="margin-top:10px"><button class="primary" id="openNetwork">Open network settings</button></div>
+      </div>
+      <div id="firewallBanner" class="banner hidden">
+        <b>Windows Firewall is blocking StreamLens</b> on <span id="firewallName"></span>, so the phone can't connect.
+        Run <b>StreamLens-Setup.exe</b> again, or open <b>Windows Security → Firewall &amp; network protection →
+        Allow an app through firewall</b> and tick <b>StreamLens</b>.
+      </div>
+    </section>
+
+    <section>
+      <h2>Right-back screen now</h2>
+      <div class="segmented" id="modes">
+        <button data-mode="automatic">Automatic</button>
+        <button data-mode="show">Show now</button>
+        <button data-mode="hide">Keep hidden</button>
+      </div>
+      <p id="modeHelp" class="small muted" style="margin:10px 0 0"></p>
+    </section>
+
+    <section>
+      <h2>Options</h2>
+      <label class="field"><span>Camera size</span>
+        <select id="cameraSize">
+          <option value="4K">4K (3840 × 2160): best for zooming in OBS</option>
+          <option value="1080p">1080p (1920 × 1080): for slower computers</option>
+        </select>
+      </label>
+      <div id="restartBanner" class="banner hidden">
+        The new camera size starts when StreamLens restarts. Close OBS's preview of StreamLens Camera first.
+        <div class="row" style="margin-top:10px"><button class="primary" id="restart">Restart StreamLens</button></div>
+      </div>
+      <label class="check"><input type="checkbox" id="autostart"> Start StreamLens when Windows starts</label>
+      <p class="small muted" style="margin:12px 0 0">In OBS: <b>+</b> → <b>Video Capture Device</b> → Device: <b>StreamLens Camera</b>.
+        Closing this window keeps StreamLens running next to the clock.</p>
+    </section>
+
+    <section>
+      <h2>Recent</h2>
+      <ul class="events" id="events"></ul>
+    </section>
+  </div>
+
+  <div class="col">
+    <section>
+      <div class="row" style="justify-content:space-between; margin-bottom:12px">
+        <h2 style="margin:0">Right-back screen</h2>
+        <span id="saved" class="saved">Saved ✓</span>
+      </div>
+      <div class="preview"><img id="preview" alt="Preview of the right-back screen"></div>
+      <p class="small muted" style="margin:8px 0 0">Viewers see this whenever the phone's video stops. It goes back to the
+        camera by itself when the phone reconnects.</p>
+
+      <label class="field"><span>Message to viewers</span><textarea id="message" rows="2"></textarea></label>
+      <label class="field"><span>Second line (optional)</span><input type="text" id="secondLine"></label>
+      <label class="field"><span>Church or event name (optional)</span><input type="text" id="churchName"></label>
+      <label class="field"><span>Brand colour</span>
+        <div class="row"><input type="color" id="colour"><span id="colourHex" class="muted"></span></div>
+      </label>
+      <label class="field"><span>Logo (optional)</span>
+        <div class="row"><span class="file" id="logoName">None</span>
+          <button data-pick="logo">Choose…</button><button data-clear="logo">Remove</button></div>
+      </label>
+      <label class="field"><span>Background photo (optional)</span>
+        <div class="row"><span class="file" id="photoName">None</span>
+          <button data-pick="photo">Choose…</button><button data-clear="photo">Remove</button></div>
+      </label>
+      <label class="check"><input type="checkbox" id="audio"> Show “Audio continues” (when sound comes from the mixer)</label>
+    </section>
+  </div>
+</main>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const send = (command, params) =>
+    window.chrome.webview.postMessage(command + (params ? "?" + new URLSearchParams(params).toString() : ""));
+
+  // ---- Right-back screen settings: preview while typing, save shortly after ----
+  const paths = { logo: "", photo: "" };
+  const fileName = (p) => p ? p.split(/[\\/]/).pop() : "None";
+  function current() {
+    return {
+      message: $("message").value, secondLine: $("secondLine").value, churchName: $("churchName").value,
+      colour: $("colour").value.toUpperCase(), logo: paths.logo, photo: paths.photo, audio: $("audio").checked ? "1" : "0",
+    };
+  }
+  let previewTimer, saveTimer, savedTimer;
+  function changed() {
+    $("colourHex").textContent = $("colour").value.toUpperCase();
+    clearTimeout(previewTimer);
+    clearTimeout(saveTimer);
+    previewTimer = setTimeout(() => send("preview", current()), 200);
+    saveTimer = setTimeout(() => {
+      send("save", current());
+      $("saved").classList.add("show");
+      clearTimeout(savedTimer);
+      savedTimer = setTimeout(() => $("saved").classList.remove("show"), 1500);
+    }, 900);
+  }
+  for (const id of ["message", "secondLine", "churchName", "colour", "audio"]) $(id).addEventListener("input", changed);
+  document.querySelectorAll("[data-pick]").forEach((b) => b.addEventListener("click", (e) => {
+    e.preventDefault();
+    send("pick", { field: b.dataset.pick });
+  }));
+  document.querySelectorAll("[data-clear]").forEach((b) => b.addEventListener("click", (e) => {
+    e.preventDefault();
+    paths[b.dataset.clear] = "";
+    $(b.dataset.clear + "Name").textContent = "None";
+    changed();
+  }));
+
+  // ---- Manual control ----
+  const modeHelp = {
+    automatic: "Viewers see the right-back screen by themselves whenever the phone's video stops.",
+    show: "Viewers see the right-back screen now, even though the phone is fine. Click Automatic when you're ready.",
+    hide: "The right-back screen won't appear, even if the phone drops: viewers keep the last camera picture. Click Automatic to undo.",
+  };
+  document.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("click", () => send("mode", { value: b.dataset.mode })));
+
+  // ---- Options ----
+  $("cameraSize").addEventListener("change", () => send("camerasize", { value: $("cameraSize").value }));
+  $("autostart").addEventListener("change", () => send("autostart", { on: $("autostart").checked ? "1" : "0" }));
+  $("restart").addEventListener("click", () => send("restart"));
+  $("openNetwork").addEventListener("click", () => send("networksettings"));
+
+  // ---- Firewall warnings: only when the phone really can't get through, never while it's live ----
+  let network = { blocked: [] }, live = false;
+  function showBlocked() {
+    const names = (list) => list.map((n) => "“" + n.name + "”").join(" and ");
+    const publics = network.blocked.filter((n) => n.public), others = network.blocked.filter((n) => !n.public);
+    $("publicBanner").classList.toggle("hidden", live || publics.length === 0);
+    $("firewallBanner").classList.toggle("hidden", live || others.length === 0);
+    $("publicName").textContent = names(publics);
+    $("firewallName").textContent = names(others);
+  }
+
+  // ---- Messages from StreamLens ----
+  window.chrome.webview.addEventListener("message", ({ data: m }) => {
+    switch (m.type) {
+      case "settings":
+        $("message").value = m.message; $("secondLine").value = m.secondLine; $("churchName").value = m.churchName;
+        $("colour").value = m.colour; $("colourHex").textContent = m.colour; $("audio").checked = m.audio;
+        paths.logo = m.logo; paths.photo = m.photo;
+        $("logoName").textContent = fileName(m.logo); $("photoName").textContent = fileName(m.photo);
+        $("logoName").title = m.logo; $("photoName").title = m.photo;
+        break;
+      case "picked":
+        paths[m.field] = m.path;
+        $(m.field + "Name").textContent = fileName(m.path);
+        $(m.field + "Name").title = m.path;
+        changed();
+        break;
+      case "preview":
+        if (m.url) $("preview").src = m.url;
+        break;
+      case "camera": {
+        if (m.url) $("camera").src = m.url;
+        const badge = {
+          phone: ["live", "LIVE"],
+          screen: ["screen", "Right-back screen"],
+          "screen-manual": ["screen", "Right-back screen (Show now)"],
+          frozen: ["screen", "Last picture (Keep hidden)"],
+        }[m.showing];
+        $("cameraBadge").className = "badge " + badge[0];
+        $("cameraBadge").textContent = badge[1];
+        break;
+      }
+      case "status": {
+        const pill = $("pill");
+        pill.className = "pill" + (m.live ? " live" : m.everConnected ? " dropped" : "");
+        $("pillText").textContent = m.live ? "Phone live" : m.everConnected ? "Phone dropped" : "Waiting for phone";
+        $("phoneTitle").textContent = m.live ? "Phone connected" : m.everConnected ? "Phone dropped" : "Waiting for the phone";
+        $("phoneDetail").innerHTML = m.live
+          ? "Sending " + m.text.replace("Phone connected: ", "") + " to StreamLens Camera."
+          : m.everConnected
+            ? "Viewers see the right-back screen. StreamLens switches back as soon as the phone reconnects."
+            : "On your phone, open StreamLens and tap <b>Go live</b>. It finds this computer by itself.";
+        $("events").innerHTML = "";
+        for (const e of m.events) { const li = document.createElement("li"); li.textContent = e; $("events").appendChild(li); }
+        if (!m.events.length) $("events").innerHTML = "<li>Nothing yet.</li>";
+        live = m.live;
+        showBlocked();
+        break;
+      }
+      case "network":
+        $("addresses").innerHTML = m.addresses.length
+          ? m.addresses.map((a) => '<span class="addr">' + a.replace(/</g, "&lt;") + "</span>").join(" ")
+          : "not connected to a network";
+        network = m;
+        showBlocked();
+        break;
+      case "mode":
+        document.querySelectorAll("[data-mode]").forEach((b) => {
+          b.classList.toggle("on", b.dataset.mode === m.value);
+          b.classList.toggle("warn", b.dataset.mode === m.value && m.value !== "automatic");
+        });
+        $("modeHelp").textContent = modeHelp[m.value];
+        break;
+      case "prefs":
+        $("cameraSize").value = m.camera1080p ? "1080p" : "4K";
+        $("autostart").checked = m.autostart;
+        $("restartBanner").classList.toggle("hidden", !m.restartNeeded);
+        break;
+    }
+  });
+  send("ready");
+</script>
+</body>
+</html>
