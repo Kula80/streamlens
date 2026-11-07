@@ -1,0 +1,7 @@
+<resources>
+    <color name="launcher_background">#3C3489</color>
+    <color name="panel">#B3000000</color>
+    <color name="live">#E24B4A</color>
+    <color name="ok">#5DCAA5</color>
+    <color name="warn">#EF9F27</color>
+</resources>

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView style="@style/FieldLabel" android:text="OBS computer address (optional)" />
+        <EditText
+            android:id="@+id/host"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/host_hint"
+            android:inputType="textUri"
+            android:importantForAutofill="no" />
+
+        <Button
+            android:id="@+id/findObs"
+            style="@style/Widget.AppCompat.Button.Borderless.Colored"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/find_obs"
+            android:textAllCaps="false" />
+
+        <TextView style="@style/FieldLabel" android:text="Port" />
+        <EditText
+            android:id="@+id/port"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="number"
+            android:importantForAutofill="no" />
+
+        <TextView style="@style/FieldLabel" android:text="Resolution" />
+        <Spinner android:id="@+id/resolution" android:layout_width="match_parent" android:layout_height="wrap_content" />
+
+        <TextView style="@style/FieldLabel" android:text="Frame rate" />
+        <Spinner android:id="@+id/fps" android:layout_width="match_parent" android:layout_height="wrap_content" />
+
+        <TextView style="@style/FieldLabel" android:text="Codec" />
+        <Spinner android:id="@+id/codec" android:layout_width="match_parent" android:layout_height="wrap_content" />
+
+        <TextView android:id="@+id/bitrateLabel" style="@style/FieldLabel" />
+        <SeekBar android:id="@+id/bitrate" android:layout_width="match_parent" android:layout_height="wrap_content" android:max="98" />
+
+        <TextView style="@style/FieldLabel" android:text="Stability" />
+        <Spinner android:id="@+id/latency" android:layout_width="match_parent" android:layout_height="wrap_content" />
+
+        <CheckBox
+            android:id="@+id/adaptive"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Lower quality automatically when the network struggles" />
+
+        <CheckBox
+            android:id="@+id/silence"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Silence calls and notifications while live" />
+
+        <TextView style="@style/FieldLabel" android:text="In OBS, add a Media Source with this input:" />
+        <TextView
+            android:id="@+id/obsUrl"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:textIsSelectable="true"
+            android:textSize="12sp" />
+    </LinearLayout>
+</ScrollView>

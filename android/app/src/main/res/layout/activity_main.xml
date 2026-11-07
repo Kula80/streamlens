@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/black">
+
+    <SurfaceView
+        android:id="@+id/preview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center" />
+
+    <View
+        android:id="@+id/dim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#E6000000"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/topBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:background="@color/panel"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="6dp">
+
+        <TextView
+            android:id="@+id/link"
+            style="@style/StatusText"
+            android:text="● Not live" />
+
+        <TextView
+            android:id="@+id/video"
+            style="@style/StatusText" />
+
+        <TextView
+            android:id="@+id/bitrate"
+            style="@style/StatusText" />
+
+        <TextView
+            android:id="@+id/net"
+            style="@style/StatusText"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1" />
+
+        <TextView
+            android:id="@+id/phone"
+            style="@style/StatusText" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/warning"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="40dp"
+        android:background="@color/warn"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="6dp"
+        android:textColor="#412402"
+        android:textSize="14sp"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end|center_vertical"
+        android:layout_marginEnd="12dp"
+        android:gravity="center_horizontal"
+        android:orientation="vertical">
+
+        <Button
+            android:id="@+id/live"
+            android:layout_width="96dp"
+            android:layout_height="96dp"
+            android:background="@drawable/live_button"
+            android:text="GO LIVE"
+            android:textColor="@android:color/white"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/settings"
+            style="@style/SideButton"
+            android:text="Settings" />
+
+        <Button
+            android:id="@+id/check"
+            style="@style/SideButton"
+            android:text="Network" />
+
+        <Button
+            android:id="@+id/dimToggle"
+            style="@style/SideButton"
+            android:text="Dim" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/sliderPanel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="136dp"
+        android:layout_marginBottom="64dp"
+        android:background="@color/panel"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/sliderLabel"
+            style="@style/StatusText"
+            android:minWidth="120dp" />
+
+        <SeekBar
+            android:id="@+id/slider"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1" />
+
+        <Button
+            android:id="@+id/sliderAuto"
+            style="@style/ControlButton"
+            android:text="Auto" />
+    </LinearLayout>
+
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginEnd="124dp"
+        android:background="@color/panel"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="4dp">
+
+            <Button android:id="@+id/aeLock" style="@style/ControlButton" android:text="Exposure: auto" />
+            <Button android:id="@+id/ev" style="@style/ControlButton" android:text="EV 0" />
+            <Button android:id="@+id/iso" style="@style/ControlButton" android:text="ISO auto" />
+            <Button android:id="@+id/shutter" style="@style/ControlButton" android:text="Shutter auto" />
+            <Button android:id="@+id/wb" style="@style/ControlButton" android:text="WB auto" />
+            <Button android:id="@+id/wbLock" style="@style/ControlButton" android:text="WB: free" />
+            <Button android:id="@+id/focus" style="@style/ControlButton" android:text="Focus auto" />
+            <Button android:id="@+id/zoom" style="@style/ControlButton" android:text="Zoom 1.0×" />
+            <Button android:id="@+id/natural" style="@style/ControlButton" android:text="Look: natural" />
+        </LinearLayout>
+    </HorizontalScrollView>
+</FrameLayout>

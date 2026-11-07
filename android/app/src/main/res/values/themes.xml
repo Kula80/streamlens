@@ -1,0 +1,8 @@
+<resources>
+    <style name="Theme.StreamLens" parent="Theme.AppCompat.NoActionBar">
+        <item name="colorPrimary">#3C3489</item>
+        <item name="colorAccent">#7F77DD</item>
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:windowFullscreen">true</item>
+    </style>
+</resources>

@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">StreamLens</string>
+    <string name="find_obs">Find OBS automatically</string>
+    <string name="host_hint">Leave empty to find OBS automatically</string>
+</resources>
