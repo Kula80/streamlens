@@ -65,18 +65,6 @@ object ObsFinder {
         }.getOrDefault(false)
     }
 
-    /**
-     * The phone network that reaches [host] directly. Used to keep the stream on Wi-Fi/Ethernet even when
-     * Android would rather use mobile data (for example when the church Wi-Fi has no internet).
-     */
-    fun networkFor(context: Context, host: String): Network? {
-        if (!IPV4.matches(host)) return null
-        val target = InetAddress.getByName(host) as Inet4Address
-        return localNetworks(context).firstOrNull { it.contains(target) }?.network
-    }
-
-    private val IPV4 = Regex("""\d{1,3}(\.\d{1,3}){3}""")
-
     private fun localNetworks(context: Context): List<LocalNet> {
         val cm = context.getSystemService(ConnectivityManager::class.java)
         val byInterface = HashMap<String, Network>()

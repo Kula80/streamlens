@@ -3,8 +3,13 @@
 Receives the phone's video and shows it as **StreamLens Camera**, which OBS (Video Capture Device),
 Zoom, Teams and browsers can pick like any webcam. No OBS script needed.
 
-Status: milestone 1 (console app). Still to come: the branded right-back screen inside the camera, a
-proper window with tray icon and "start with Windows", and an installer.
+Whenever there's no phone video (before it connects, or after a drop of 2 seconds), the camera shows
+the branded right-back screen, drawn by `receiver/Slate.cpp` to match the OBS one. Its text, colour,
+logo and photo come from `%APPDATA%\StreamLens\settings.ini` (created on first run); saving the file
+updates the camera within seconds. When the phone reconnects, the camera switches back by itself.
+
+Status: console app plus a pen-drive kit (`package.ps1`, `kit/`). Still to come: a proper window with
+tray icon and "start with Windows" (and settings in it), and a signed installer.
 
 ## How it works
 

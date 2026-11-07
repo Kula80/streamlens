@@ -13,6 +13,13 @@ ON THE PHONE
 6. Put the phone on the same Wi-Fi or router as the laptop and tap Go live.
    The phone finds the laptop by itself.
 
+THE RIGHT-BACK SCREEN
+Whenever there's no phone video (before it connects, or if it drops), StreamLens Camera shows a
+"Sorry for the inconvenience. We'll be right back." screen, and switches back to the phone by itself
+when it reconnects. To add your church name, logo, photo, colour or your own message:
+- Press Windows+R, paste  %APPDATA%\StreamLens\settings.ini  and press Enter.
+- Edit it in Notepad and save. The camera updates within a few seconds.
+
 IF THE PHONE CAN'T FIND THE LAPTOP
 - Windows must treat the network as Private: Settings > Network & Internet > your Wi-Fi >
   Network profile: Private.

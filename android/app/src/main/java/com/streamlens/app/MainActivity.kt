@@ -5,7 +5,6 @@ import android.app.NotificationManager
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.net.ConnectivityManager
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
@@ -38,6 +37,7 @@ import com.streamlens.app.camera.CameraControls
 import com.streamlens.app.camera.WhiteBalance
 import com.streamlens.app.net.NetworkCheck
 import com.streamlens.app.net.ObsFinder
+import com.streamlens.app.net.ObsNetworkPin
 import com.streamlens.app.net.SrtSender
 import com.streamlens.app.service.StreamService
 import java.util.Locale
@@ -55,6 +55,7 @@ class MainActivity : AppCompatActivity() {
     private var dial: Dial? = null
     private var lastStatus = EngineStatus()
     private val ui = Handler(Looper.getMainLooper())
+    private val networkPin by lazy { ObsNetworkPin(this) }
 
     private val v by lazy { Views(this) }
 
@@ -88,6 +89,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         ui.removeCallbacksAndMessages(null)
+        networkPin.stop()
         engine.release()
         StreamService.stop(this)
         super.onDestroy()
@@ -159,7 +161,7 @@ class MainActivity : AppCompatActivity() {
                 .setPositiveButton("Stop") { _, _ ->
                     engine.stopLive()
                     StreamService.stop(this)
-                    getSystemService(ConnectivityManager::class.java).bindProcessToNetwork(null)
+                    networkPin.stop()
                 }
                 .setNegativeButton("Keep streaming", null)
                 .show()
@@ -256,9 +258,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** Keeps the stream on the network that reaches OBS, even if Android prefers mobile data. */
-    private fun bindToObsNetwork() {
-        getSystemService(ConnectivityManager::class.java).bindProcessToNetwork(ObsFinder.networkFor(this, settings.host))
-    }
+    private fun bindToObsNetwork() = networkPin.start(settings.host)
 
     private fun render(status: EngineStatus) {
         lastStatus = status

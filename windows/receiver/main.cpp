@@ -1,17 +1,21 @@
-// StreamLens for Windows (milestone 1: console).
+// StreamLens for Windows (console for now).
 // Receives the phone's video and shows it as "StreamLens Camera", which OBS, Zoom and Teams can pick
-// like any webcam. The phone finds this computer by itself, just as it finds OBS.
+// like any webcam. The phone finds this computer by itself, just as it finds OBS. Whenever there's no
+// phone video, the camera shows the branded right-back screen instead.
 
 #include <windows.h>
 
 #include <atomic>
 #include <cstdio>
 #include <cstring>
+#include <memory>
 #include <mutex>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "Receiver.h"
+#include "Slate.h"
 #include "softcam.h"
 
 namespace {
@@ -23,14 +27,24 @@ BOOL WINAPI onConsoleClose(DWORD) {
     return TRUE;
 }
 
-// Until the right-back screen arrives (next milestone), a plain dark navy frame while waiting (NV12).
-void fillWaiting(std::vector<uint8_t>& nv12, int width, int height) {
-    const size_t luma = static_cast<size_t>(width) * height;
-    std::memset(nv12.data(), 39, luma);
-    for (size_t i = luma; i + 1 < nv12.size(); i += 2) {
-        nv12[i] = 135;      // U
-        nv12[i + 1] = 127;  // V
-    }
+// Both versions of the right-back screen, drawn ahead of time so switching to them is instant.
+struct Slates {
+    std::vector<uint8_t> waiting;       // before the phone has connected
+    std::vector<uint8_t> reconnecting;  // after the phone dropped
+};
+
+std::shared_ptr<const Slates> drawSlates(const std::wstring& settingsPath, int width, int height) {
+    SlateSettings settings = loadSlateSettings(settingsPath);
+    auto s = std::make_shared<Slates>();
+    s->waiting = renderSlate(settings, L"Waiting for the camera", width, height);
+    s->reconnecting = renderSlate(settings, L"Reconnecting", width, height);
+    return s;
+}
+
+FILETIME lastWrite(const std::wstring& path) {
+    WIN32_FILE_ATTRIBUTE_DATA data{};
+    GetFileAttributesExW(path.c_str(), GetFileExInfoStandard, &data);
+    return data.ftLastWriteTime;
 }
 
 }  // namespace
@@ -61,13 +75,16 @@ int main(int argc, char** argv) {
     }
     SetConsoleCtrlHandler(onConsoleClose, TRUE);
 
+    const std::wstring settingsPath = slateSettingsPath();
     const size_t frameBytes = static_cast<size_t>(config.outWidth) * config.outHeight * 3 / 2;  // NV12
     std::mutex lock;
-    std::vector<uint8_t> latest(frameBytes);
+    std::shared_ptr<const Slates> slates = drawSlates(settingsPath, config.outWidth, config.outHeight);
+    std::vector<uint8_t> latest = slates->waiting;
     std::vector<uint8_t> sending(frameBytes);
-    fillWaiting(latest, config.outWidth, config.outHeight);
-    // A last frame from a dropped connection can arrive just after "waiting"; it mustn't replace the screen.
+    // A last frame from a dropped connection can arrive just after the phone is declared gone; it
+    // mustn't replace the right-back screen.
     bool live = false;
+    bool everConnected = false;
     std::string lastMessage;
 
     Receiver receiver(
@@ -79,18 +96,37 @@ int main(int argc, char** argv) {
         [&](Receiver::State state, const std::string& detail) {
             std::lock_guard<std::mutex> g(lock);
             live = state == Receiver::State::Live;
+            everConnected = everConnected || live;
             std::string message = live ? "Phone connected: " + detail
                                   : !detail.empty() ? detail
-                                  : "Waiting for the phone on port " + std::to_string(config.port) + "...";
+                                  : everConnected ? "Phone dropped: showing the right-back screen. Waiting for it to come back..."
+                                                  : "Waiting for the phone on port " + std::to_string(config.port) + "...";
             // Retries repeat the same state; say it once.
             if (message != lastMessage) std::printf("%s\n", message.c_str());
             lastMessage = message;
-            if (!live) fillWaiting(latest, config.outWidth, config.outHeight);
+            if (!live) latest = everConnected ? slates->reconnecting : slates->waiting;
         });
 
     std::printf("StreamLens Camera is on (%dx%d, %.0f fps). In OBS: + > Video Capture Device > StreamLens Camera.\n",
                 config.outWidth, config.outHeight, fps);
+    std::printf("Right-back screen settings: %ls\n", settingsPath.c_str());
     receiver.start();
+
+    // Redraw the right-back screen when its settings file is saved.
+    std::thread watcher([&] {
+        FILETIME seen = lastWrite(settingsPath);
+        while (g_running) {
+            std::this_thread::sleep_for(std::chrono::seconds(2));
+            FILETIME now = lastWrite(settingsPath);
+            if (CompareFileTime(&now, &seen) == 0) continue;
+            seen = now;
+            auto fresh = drawSlates(settingsPath, config.outWidth, config.outHeight);
+            std::lock_guard<std::mutex> g(lock);
+            slates = fresh;
+            if (!live) latest = everConnected ? slates->reconnecting : slates->waiting;
+            std::printf("Right-back screen updated.\n");
+        }
+    });
 
     // The camera keeps a steady frame rate whatever the network does: scSendFrame paces itself, and if
     // no new picture arrived the last one is sent again.
@@ -102,6 +138,7 @@ int main(int argc, char** argv) {
         scSendFrame(camera, sending.data());
     }
 
+    watcher.join();
     receiver.stop();
     scDeleteCamera(camera);
     return 0;

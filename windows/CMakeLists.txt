@@ -27,10 +27,10 @@ target_include_directories(StreamLensCamera PUBLIC camera/streamlenscam)
 target_link_libraries(StreamLensCamera PRIVATE softcamcore strmiids winmm ole32 oleaut32 uuid advapi32 user32)
 
 # --- StreamLens receiver ---------------------------------------------------------------------------
-add_executable(StreamLens receiver/main.cpp receiver/Receiver.cpp)
+add_executable(StreamLens receiver/main.cpp receiver/Receiver.cpp receiver/Slate.cpp)
 target_include_directories(StreamLens PRIVATE ${FFMPEG_DIR}/include)
 target_link_directories(StreamLens PRIVATE ${FFMPEG_DIR}/lib)
-target_link_libraries(StreamLens PRIVATE StreamLensCamera avformat avcodec avutil swscale)
+target_link_libraries(StreamLens PRIVATE StreamLensCamera avformat avcodec avutil swscale gdiplus shell32 ole32)
 
 # The receiver needs FFmpeg's DLLs next to it.
 add_custom_command(TARGET StreamLens POST_BUILD

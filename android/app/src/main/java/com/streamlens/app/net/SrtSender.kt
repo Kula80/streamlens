@@ -124,6 +124,8 @@ class SrtSender(
         s.setSockFlag(SockOpt.CONNTIMEO, 3000)
         s.setSockFlag(SockOpt.PEERIDLETIMEO, 3000)
         s.setSockFlag(SockOpt.SNDSYN, true)
+        // If Wi-Fi vanishes mid-send, give up after 3 s and reconnect instead of waiting forever.
+        s.setSockFlag(SockOpt.SNDTIMEO, 3000)
         s.setSockFlag(SockOpt.SNDBUF, 32 * 1024 * 1024)
         s.setSockFlag(SockOpt.OHEADBW, 25)
     }
