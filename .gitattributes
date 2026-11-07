@@ -1,0 +1,5 @@
+# Windows batch files need CRLF line endings to run reliably.
+*.cmd text eol=crlf
+windows/kit/*.txt text eol=crlf
+# Shell scripts must keep LF.
+gradlew text eol=lf
