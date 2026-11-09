@@ -7,3 +7,6 @@ local.properties
 captures/
 .kotlin/
 dist/
+
+# JVM crash logs from low-memory Gradle runs
+hs_err_pid*.log

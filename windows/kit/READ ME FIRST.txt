@@ -3,7 +3,7 @@ StreamLens - use your phone as a 4K camera in OBS
 
 ON THE LAPTOP (Windows 10 or 11)
 1. Double-click StreamLens-Setup.exe and follow the steps (click Yes when Windows asks).
-   If Windows says "Windows protected your PC", click More info > Run anyway.
+   If Windows blocks it, see IF WINDOWS BLOCKS THE SETUP below.
 2. StreamLens opens. Its window shows whether the phone is connected, and tells you exactly what
    to fix if Windows is blocking the phone.
 3. In OBS: + > Video Capture Device > Device: StreamLens Camera.
@@ -13,9 +13,18 @@ ON THE PHONE
 5. Put the phone on the same Wi-Fi or router as the laptop and tap Go live.
    The phone finds the laptop by itself.
 
+IF WINDOWS BLOCKS THE SETUP
+StreamLens is still in testing and isn't signed with a certificate yet, so Windows may warn you.
+- "Windows protected your PC" (SmartScreen): click More info > Run anyway.
+- "Smart App Control blocked an app" (Windows 11): there's no Run anyway button. To install,
+  turn it off: Start > Settings > Privacy & security > Windows Security > App & browser control >
+  Smart App Control settings > Off.
+  Careful: on some Windows 11 versions it can't be turned back on afterwards without resetting
+  Windows. Read what Windows says before you confirm.
+
 THE RIGHT-BACK SCREEN
 Whenever there's no phone video, StreamLens Camera shows "Sorry for the inconvenience. We'll be
-right back." and switches back to the phone by itself when it reconnects. Set your church name,
+right back." and switches back to the phone by itself when it reconnects. Set your name,
 logo, photo, colour and message in the StreamLens window; the preview shows what viewers will see.
 
 GOOD TO KNOW

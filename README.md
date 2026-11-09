@@ -30,7 +30,7 @@ Phone (Android app)  ──SRT over Wi-Fi / Ethernet / USB tethering──►  O
 
 - One click creates the phone camera source and the right-back screen.
 - Right-back screen with your message (default: "Sorry for the inconvenience. We'll be right
-  back."), second line, church name, brand colour, logo, background photo and an optional
+  back."), second line, channel or event name, brand colour, logo, background photo and an optional
   "Audio continues" note.
 - Shows automatically after 2 seconds without video, returns to the camera once the phone has
   been steady for 2 seconds. Manual show/hide buttons too.
@@ -62,7 +62,7 @@ each other; use the main network or a dedicated router.
 
 | Connection | Notes |
 | --- | --- |
-| USB-C hub with Ethernet and power passthrough | Best for churches: up to 100 m, no Wi-Fi interference, phone charges |
+| USB-C hub with Ethernet and power passthrough | Best for fixed setups: up to 100 m, no Wi-Fi interference, phone charges |
 | 5 GHz / Wi-Fi 6 | Good with a strong signal near an access point |
 | USB tethering | Turn on USB tethering on the phone, then use the PC's address on that link (SRT uses UDP, so `adb reverse` doesn't work) |
 

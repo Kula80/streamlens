@@ -17,6 +17,18 @@ Zoom, Teams and browsers can pick like any webcam. People install it with **Stre
   registers the camera, adds a firewall rule for Private/Domain networks, shortcuts, optional start
   with Windows, and an Apps & features uninstaller.
 
+## If Windows blocks the installer
+
+StreamLens is still in testing and the setup isn't code-signed yet, so Windows may stop it:
+
+- **"Windows protected your PC"** (SmartScreen): click **More info > Run anyway**.
+- **"Smart App Control blocked an app"** (Windows 11): there's no way past it for one app. Turn it off
+  in **Settings > Privacy & security > Windows Security > App & browser control > Smart App Control
+  settings > Off**. On some Windows 11 versions it can't be turned back on without resetting Windows,
+  so read Windows' message before confirming.
+
+Signing the setup and every StreamLens file with a trusted certificate would remove these warnings.
+
 ## How it works
 
 - `receiver/Receiver.cpp`: waits for the phone as an SRT listener on port 9710 (the phone finds it

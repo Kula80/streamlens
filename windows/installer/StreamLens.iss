@@ -39,7 +39,7 @@ RestartApplications=no
 
 [Tasks]
 Name: "desktopicon"; Description: "Put a StreamLens shortcut on the desktop"
-Name: "autostart"; Description: "Start StreamLens when Windows starts (handy for church computers)"; Flags: unchecked
+Name: "autostart"; Description: "Start StreamLens when Windows starts (for quick access)"; Flags: unchecked
 
 [Files]
 Source: "{#Build}\StreamLens.exe"; DestDir: "{app}"; Flags: ignoreversion
@@ -70,7 +70,7 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
   ValueData: """{app}\StreamLens.exe"" --minimized"; Tasks: autostart; Flags: uninsdeletevalue
 
 [Run]
-; Let the phone reach StreamLens on home, church and work networks (Windows calls them Private/Domain).
+; Let the phone reach StreamLens on home and work networks (Windows calls them Private/Domain).
 ; StreamLens's window explains what to do if Windows calls the network Public.
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""StreamLens"""; Flags: runhidden
 Filename: "{sys}\netsh.exe"; \

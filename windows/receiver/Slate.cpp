@@ -29,12 +29,12 @@ const char kDefaultSettings[] =
     "; Edit this file, save it, and StreamLens Camera updates within a few seconds.\r\n"
     ";\r\n"
     "; Leave a line empty to hide it. Logo and Photo are picture files, for example\r\n"
-    ";   Logo=C:\\Users\\You\\Pictures\\church-logo.png\r\n"
+    ";   Logo=C:\\Users\\You\\Pictures\\logo.png\r\n"
     "; BrandColour is #RRGGBB. AudioContinues=yes shows \"Audio continues\" (when sound comes from the mixer).\r\n"
     "\r\n"
     "Message=Sorry for the inconvenience. We'll be right back.\r\n"
     "SecondLine=\r\n"
-    "ChurchName=\r\n"
+    "Name=\r\n"
     "BrandColour=#3C3489\r\n"
     "Logo=\r\n"
     "Photo=\r\n"
@@ -119,7 +119,7 @@ SlateSettings loadSlateSettings(const std::wstring& path) {
         std::transform(key.begin(), key.end(), key.begin(), ::towlower);
         if (key == L"message") s.message = value.empty() ? defaults.message : value;
         else if (key == L"secondline") s.secondLine = value;
-        else if (key == L"churchname") s.churchName = value;
+        else if (key == L"name" || key == L"churchname") s.churchName = value;  // ChurchName: older files
         else if (key == L"brandcolour" || key == L"brandcolor") s.brandColour = parseColour(value, defaults.brandColour);
         else if (key == L"logo") s.logo = value;
         else if (key == L"photo") s.photo = value;
@@ -153,7 +153,7 @@ void saveSettings(const std::wstring& path, const SlateSettings& s, const AppPre
     wchar_t colour[8];
     swprintf(colour, 8, L"#%06X", s.brandColour & 0xFFFFFF);
     std::wstring body = L"Message=" + oneLine(s.message) + L"\r\nSecondLine=" + oneLine(s.secondLine) +
-                        L"\r\nChurchName=" + oneLine(s.churchName) + L"\r\nBrandColour=" + colour +
+                        L"\r\nName=" + oneLine(s.churchName) + L"\r\nBrandColour=" + colour +
                         L"\r\nLogo=" + oneLine(s.logo) + L"\r\nPhoto=" + oneLine(s.photo) +
                         L"\r\nAudioContinues=" + (s.audioContinues ? L"yes" : L"no") +
                         L"\r\n\r\n; Camera size: 4K, or 1080p for slower computers (takes effect when StreamLens restarts).\r\n"
